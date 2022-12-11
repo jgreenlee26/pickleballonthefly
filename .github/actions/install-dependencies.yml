@@ -1,0 +1,46 @@
+# Isolated workflow to save on repeat code across workflows
+name: Install dependencies
+description: ""
+
+inputs:
+  # Boolean to allow yarn postinstall scripts to run. On by default
+  enable_scripts:
+    required: false
+    default: "1"
+
+outputs:
+  yarn-version:
+    description: Runtime version of the yarn package manager
+    value: ${{ steps.yarn.outputs.version }}
+  yarn-cache-dir:
+    description: Runtime version of the yarn package manager
+    value: ${{ steps.yarn.outputs.cache-dir }}
+
+runs:
+  using: composite
+  steps:
+    - name: Read yarn version 🛠
+      run: |
+        echo ::set-output name=version::$(yarn --version)
+        echo ::set-output name=cache-dir::${{ github.workspace }}/.yarn/cache
+      id: yarn
+      shell: bash
+
+    - name: Setup node env 🏗
+      uses: actions/setup-node@v3
+      with:
+        node-version-file: ".nvmrc"
+        cache: "yarn"
+
+    - name: Echo Environment Version 📢
+      run: |
+        echo " NPM: $(npm --version)"
+        echo "Yarn: $(yarn --version)"
+        echo "Node: $(node --version)"
+      shell: bash
+
+    # - name: Install dependencies 👨🏻‍💻
+    #   run: make staticsite-prep
+    #   env:
+    #     YARN_ENABLE_SCRIPTS: ${{ inputs.enable_scripts }}
+    #   shell: bash

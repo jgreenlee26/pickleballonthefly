@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Drawer, DrawerContent } from "@progress/kendo-vue-layout";
 import { useLocalStorage } from "@vueuse/core";
 import { useRouter, useRoute } from "vue-router";
 
@@ -44,7 +43,7 @@ function onSelect({ itemIndex }: { itemIndex: number }) {
 </script>
 
 <template>
-  <Drawer
+  <!-- <Drawer
     class="h-[90vh]"
     :expanded="expanded"
     position="start"
@@ -58,5 +57,5 @@ function onSelect({ itemIndex }: { itemIndex: number }) {
         <router-view />
       </div>
     </DrawerContent>
-  </Drawer>
+  </Drawer> -->
 </template>

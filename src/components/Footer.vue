@@ -2,7 +2,7 @@
 </script>
 <template>
   <div
-    class="navbar p-4 flex justify-between"
+    class="footer p-4 flex justify-between"
   >
     <div>
       <jdz-button
@@ -14,8 +14,10 @@
   </div>
 </template>
 <style lang="scss">
-.navbar {
+  .footer {
     background-color: #202027;
-    height: 105px;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
   }
 </style>

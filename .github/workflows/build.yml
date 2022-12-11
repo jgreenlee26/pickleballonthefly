@@ -1,0 +1,34 @@
+name: Build and Upload Artifacts
+
+on:
+  push:
+    branches:
+      - "**"
+    tags-ignore:
+      - "**"
+  schedule:
+    # Build project weekly to alert early if CI dependency has broken
+    # A random time on the weekend, generated via:
+    # echo "$(((RANDOM%60))) $(((RANDOM%24)))"' * * '"$( if [[ $(((RANDOM%2))) -eq 0 ]]; then echo 0; else echo 6; fi )"
+    - cron: "33 22 * * 0"
+
+# env:
+#   AWS_DEFAULT_REGION: ${{secrets.AWS_DEFAULT_REGION}}
+
+jobs:
+  build:
+    name: Build Artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 🛎
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+          # Both options needed for github release processes
+          persist-credentials: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Dependencies 👨🏻‍💻
+        uses: ./.github/actions/install-dependencies
+        with:
+          enable_scripts: "0"

@@ -1,0 +1,60 @@
+name: ci-merge
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+          persist-credentials: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref }}
+
+      - name: Authenticating with npm
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+
+      # - name: Login to Amazon ECR
+      #   uses: aws-actions/amazon-ecr-login@v1
+
+      # - name: Post Authentication Scripts
+      #   run: |
+      #     npm install --ignore-scripts
+      #     npm rebuild && npm run prepare --if-present
+      #   env:
+      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Setup Project
+        run: make staticsite-check staticsite-prep
+
+      # - name: Test Project
+      #   id: test
+      #   run: |
+      #     npm run lint:ci
+      #     make staticsite-test
+      
+      # - name: Store Artifacts
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     path: artifacts/
+
+      # - name: Build Project
+      #   run: make staticsite-build

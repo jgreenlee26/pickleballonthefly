@@ -9,4 +9,15 @@ authUserStore.initUser();
   <Navbar />
   <Drawer />
   <Alerts />
+  <Footer />
 </template>
+
+<style lang="scss">
+html {
+    height: 100%;
+  }
+  body {
+    background-color: #2F303A;
+    height: 100%;
+  }
+</style>

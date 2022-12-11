@@ -1,10 +1,5 @@
 <script lang="ts" setup>
 import { useAlerts } from "@/stores/alerts";
-import { Fade } from "@progress/kendo-vue-animation";
-import {
-  Notification,
-  NotificationGroup,
-} from "@progress/kendo-vue-notification";
 import { storeToRefs } from "pinia";
 import { reactive } from "vue";
 

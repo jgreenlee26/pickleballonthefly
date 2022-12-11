@@ -1,0 +1,103 @@
+name: cypress test on pull request
+
+on:
+  pull_request:
+    types: [assigned, unassigned, opened, reopened, edited]
+
+env:
+  AWS_DEFAULT_REGION: ${{secrets.AWS_DEFAULT_REGION}}
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-20.04
+    name: e2e
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+          persist-credentials: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref }}
+
+      - name: Authenticating with npm
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Post Authentication Scripts
+        run: |
+          npm install --ignore-scripts
+          npm rebuild && npm run prepare --if-present
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      
+      - name: Cypress run
+        uses: cypress-io/github-action@v4
+        with:
+          start: npm run cy:serve
+          wait-on: http://localhost:8080/
+          wait-on-timeout: 120
+          config-file: "cypress/config/dev.config.ts"
+          spec: "cypress/e2e/l1/*"
+        env:
+          CYPRESS_AUTH0_CLIENT_ID: ${{ secrets.CYPRESS_AUTH0_CLIENT_ID }}
+          CYPRESS_AUTH0_CLIENT_SECRET: ${{ secrets.CYPRESS_AUTH0_CLIENT_SECRET }}
+
+      - name: Store Artifacts
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-artifacts
+          path: artifacts/   
+
+  version:
+    needs: build_and_test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: true
+        token: ${{ secrets.GITHUB_TOKEN }}
+        ref: ${{ github.head_ref }}
+
+    - name: Github user
+      run: | 
+        git config --global user.email "jgreenlee24@gmail.com"
+        git config --global user.name "jgreenlee26"
+
+    - name: Bump version and push tag
+      id: bump-and-tag
+      uses: anothrNick/github-tag-action@1.36.0
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        WITH_V: true
+        RELEASE_BRANCHES: .*
+        DRY_RUN: true
+        DEFAULT_BUMP: "none"
+
+    - name: get-npm-version
+      id: package-version
+      uses: martinbeentjes/npm-get-version-action@main
+
+    - name: version it
+      id: get-id
+      uses: actions/github-script@0.9.0
+      env:
+        DATA: ${{ steps.bump-and-tag.outputs.new_tag }}
+      with:
+        script: |
+          const id = process.env.DATA.split('v')[1]
+          core.setOutput('version', id)
+
+    - name: npm version
+      if: steps.package-version.outputs.current-version != steps.get-id.outputs.version
+      run: npm version ${{ steps.get-id.outputs.version }}
+
+    - name: push version
+      if: steps.package-version.outputs.current-version != steps.get-id.outputs.version
+      env: 
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: git push origin HEAD:${{github.head_ref}} --follow-tags

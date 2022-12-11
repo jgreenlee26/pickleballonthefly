@@ -1,0 +1,153 @@
+name: Lint Pull Request
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+
+env:
+  AWS_DEFAULT_REGION: ${{secrets.AWS_DEFAULT_REGION}}
+
+jobs:
+  cloudformation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 🛎
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+          persist-credentials: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # - name: Configure AWS credentials 🛠
+      #   uses: aws-actions/configure-aws-credentials@v1
+      #   with:
+      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #     aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
+      # - name: Login to Amazon ECR 🐳
+      #   uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Run linter 👀
+        run: make cfn-lint
+
+  translation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 🛎
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+          persist-credentials: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # - name: Configure AWS credentials 🛠
+      #   uses: aws-actions/configure-aws-credentials@v1
+      #   with:
+      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #     aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
+      # - name: Login to Amazon ECR 🐳
+      #   uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Run linter 👀
+        run: make validate-translations
+
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      node-version: ${{ steps.nvm.outputs.node-version }}
+      yarn-cache-dir: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+    steps:
+      - name: Checkout 🛎
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+          persist-credentials: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Dependencies 👨🏻‍💻
+        uses: ./.github/actions/install-dependencies
+        with:
+          enable_scripts: "0"
+
+  commit:
+    runs-on: ubuntu-latest
+    needs:
+      - setup
+    steps:
+      - name: Checkout 🛎
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          submodules: true
+          persist-credentials: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Dependencies 👨🏻‍💻
+        uses: ./.github/actions/install-dependencies
+        with:
+          enable_scripts: "0"
+
+      - name: Run linter 👀
+        run: yarn run lint:commit -- ${{ github.event.pull_request.base.sha }}
+
+  source:
+    runs-on: ubuntu-latest
+    needs:
+      - setup
+    steps:
+      - name: Checkout 🛎
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+          persist-credentials: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Dependencies 👨🏻‍💻
+        uses: ./.github/actions/install-dependencies
+        with:
+          enable_scripts: "0"
+
+      - name: Lint 👀
+        run: yarn run lint:ci
+
+      - name: Cleanup vue-cli-service lint output 🧹
+        id: lint-report
+        if: always()
+        run: |
+          # Delete files that don't begin with valid XML format.
+          # These currently come from vue-cli-service lint output and will be fixable in v5
+          files=""
+          for file in artifacts/reports/*; do
+            if [ "$(sed -n '/^[^{\[]/p;q' "$file")" ]; then
+              echo "Non JSON File Found – '$file'"
+              cat $file
+              rm $file
+            else
+              files="$files $file"
+            fi
+          done
+
+          # Combine into single report
+          report_file=artifacts/reports/eslint_report.json
+          echo $(jq -sn 'inputs | add' $files) > $report_file
+          echo "::set-output name=report-file::$report_file"
+
+      - name: Publish Lint Results 🚀
+        uses: ataylorme/eslint-annotate-action@1.2.0
+        if: always()
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          report-json: ${{ steps.lint-report.outputs.report-file }}
+
+      - name: Upload ESLint report 🚀
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: eslint_report.json
+          path: ${{ steps.lint-report.outputs.report-file }}

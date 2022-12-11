@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import { Input as KInput } from "@progress/kendo-vue-inputs";
-import { Button as KButton } from "@progress/kendo-vue-buttons";
 import type { Label } from "@/types";
 import { v4 as uuidv4 } from "uuid";
 
@@ -126,15 +124,15 @@ watch(
       <div v-if="showCreate">
         <label class="block">
           Label
-          <KInput :style="{ width: '230px' }" v-model="newLabel.label"></KInput>
+          <!-- <KInput :style="{ width: '230px' }" v-model="newLabel.label"></KInput> -->
         </label>
         <label class="block">
           Color
-          <AppColorInput v-model="newLabel.color" />
+          <!-- <AppColorInput v-model="newLabel.color" /> -->
         </label>
-        <KButton @click="handleCreate" class="block mt-3" theme-color="primary"
+        <!-- <KButton @click="handleCreate" class="block mt-3" theme-color="primary"
           >Create</KButton
-        >
+        > -->
       </div>
     </div>
   </div>

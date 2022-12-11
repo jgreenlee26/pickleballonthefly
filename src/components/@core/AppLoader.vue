@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Loader as KLoader } from "@progress/kendo-vue-indicators";
 defineProps<{
   overlay: boolean;
 }>();
@@ -12,7 +11,7 @@ defineProps<{
 
 <style scoped>
 .overlay {
-  @apply absolute top-0 bottom-0 left-0 right-0 flex justify-center items-center;
+  /* @apply absolute top-0 bottom-0 left-0 right-0 flex justify-center items-center; */
   background: rgba(255, 255, 255, 0.95);
   z-index: 2;
 }
